@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-// Navigate to main page via named route to avoid circular imports
+import 'models/usuario.dart';
+import 'current_user.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});
@@ -41,6 +42,20 @@ class _LoginPageState extends ConsumerState<LoginPage> {
           .limit(1);
 
       if (results.isNotEmpty) {
+        final userMap = results.first as Map<String, dynamic>?;
+        final ativo = userMap?['ativo'] as bool?;
+        if (ativo == false) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Conta desativada. Contate o administrador.')),
+          );
+          return;
+        }
+
+        if (userMap != null) {
+          final usuario = Usuario.fromDocument(userMap);
+          currentUser.value = usuario;
+        }
+
         Navigator.of(context).pushReplacementNamed('/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -73,6 +88,11 @@ class _LoginPageState extends ConsumerState<LoginPage> {
       }).select();
 
       if (inserted.isNotEmpty) {
+        final insertedUser = inserted.first as Map<String, dynamic>?;
+        if (insertedUser != null) {
+          final usuario = Usuario.fromDocument(insertedUser);
+          currentUser.value = usuario;
+        }
         Navigator.of(context).pushReplacementNamed('/home');
       } else {
         ScaffoldMessenger.of(context).showSnackBar(
