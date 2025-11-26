@@ -112,7 +112,7 @@ class MainPage extends ConsumerWidget {
         ],
       ),
       body: const Center(
-        child: Text('Bem-vindo — sistema de atividades removido temporariamente'),
+        child: Text('Bem-vindo a suas atividades!'),
       ),
     );
   }
