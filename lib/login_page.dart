@@ -109,7 +109,10 @@ class _LoginPageState extends ConsumerState<LoginPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Entrar / Criar conta')),
+      appBar: AppBar(toolbarHeight: 100, title: Padding(
+        padding: const EdgeInsets.only(top: 50.0),
+      child: Center(child: const Text('Lembrei :)', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),)),
+      )),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
