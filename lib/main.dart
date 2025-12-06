@@ -3,9 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'supabase_options.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:myapp/auth_provider.dart';
+import 'package:myapp/notification_service.dart';
 import 'package:myapp/login_page.dart';
 import 'package:myapp/current_user.dart';
 import 'package:myapp/models/usuario.dart';
+import 'package:myapp/providers/current_user_provider.dart';
+import 'package:myapp/activities_list.dart';
 
 
 
@@ -14,6 +17,7 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Function.apply(Supabase.initialize, [], supabaseOptions);
+  await NotificationService().init();
 
   runApp(const MyApp());
 }
@@ -100,19 +104,43 @@ class MainPage extends ConsumerWidget {
                         ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao desativar conta: $e')));
                       }
                     }
+                  } else if (value == 'logout') {
+                    try {
+                      await Supabase.instance.client.auth.signOut();
+                    } catch (e) {
+                    }
+                    currentUser.value = null;
+                    ref.read(currentUserIdProvider.notifier).state = null;
+                    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
                   }
                 },
                 itemBuilder: (context) => const [
                   PopupMenuItem(value: 'alterar_senha', child: Text('Alterar senha')),
                   PopupMenuItem(value: 'deletar_usuario', child: Text('Deletar usuário')),
+                  PopupMenuItem(value: 'logout', child: Text('Sair')),
                 ],
               );
             },
           ),
         ],
       ),
-      body: const Center(
-        child: Text('Bem-vindo a suas atividades!'),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Bem-vindo às suas atividades!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+            const SizedBox(height: 8),
+            Builder(builder: (context) {
+              final userId = ref.watch(currentUserIdProvider);
+              return Text(
+                userId != null ? 'ID do usuário: $userId' : 'Usuário não identificado',
+                style: const TextStyle(color: Colors.black54),
+              );
+            }),
+            const SizedBox(height: 12),
+            const ActivitiesList(),
+          ],
+        ),
       ),
     );
   }
