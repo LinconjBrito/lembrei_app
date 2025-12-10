@@ -40,9 +40,10 @@ dependencies:
   json_annotation: ^4.9.0
   supabase_flutter: ^2.10.3
   google_sign_in: ^7.2.0
-  flutter_local_notifications: ^13.0.0
+  flutter_local_notifications: ^17.1.2
   timezone: ^0.9.0
-  flutter_native_timezone: ^2.0.0
+  permission_handler: ^11.3.1
+
 
 dev_dependencies:
   flutter_lints: ^6.0.0
