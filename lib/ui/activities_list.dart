@@ -38,9 +38,7 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
 
       final list = <Atividade>[];
       for (final r in results) {
-        if (r is Map<String, dynamic>) {
-          list.add(Atividade.fromMap(r));
-        }
+        list.add(Atividade.fromMap(r));
       }
       
       // Resetar atividades recorrentes que foram concluídas em dias anteriores
@@ -55,9 +53,7 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
       
       list.clear();
       for (final r in updatedResults) {
-        if (r is Map<String, dynamic>) {
-          list.add(Atividade.fromMap(r));
-        }
+        list.add(Atividade.fromMap(r));
       }
       
       // Separar em pendentes e concluídas
@@ -73,6 +69,7 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
       // Reagendar apenas notificações de atividades pendentes
       await NotificationService().rescheduleAllNotificationsForUser(userId);
     } catch (e) {
+      // Erro ao carregar atividades será exibido como lista vazia
     } finally {
       setState(() => _loading = false);
     }

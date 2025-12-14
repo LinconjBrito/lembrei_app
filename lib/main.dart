@@ -9,6 +9,7 @@ import 'package:myapp/current_user.dart';
 import 'package:myapp/models/usuario.dart';
 import 'package:myapp/providers/current_user_provider.dart';
 import 'package:myapp/ui/activities_list.dart';
+import 'package:myapp/utils/logger.dart';
 
 
 
@@ -40,11 +41,11 @@ Future<void> _rescheduleNotificationsOnStartup() async {
         final userIdInt = userResult['id'] as int;
         await NotificationService().resetRecurrentActivities(userIdInt);
         await NotificationService().rescheduleAllNotificationsForUser(userIdInt);
-        print('Atividades recorrentes resetadas e notificações reagendadas no startup');
+        Logger.log('Atividades recorrentes resetadas e notificações reagendadas no startup');
       }
     }
   } catch (e) {
-    print('Erro ao reagendar notificações no startup: $e');
+    Logger.error('Erro ao reagendar notificações no startup', e);
 
   }
 }
@@ -103,9 +104,13 @@ class MainPage extends ConsumerWidget {
                     if (result != null && result.isNotEmpty) {
                       try {
                         await client.from('usuario').update({'senha': result}).eq('id', usuario.id!).select();
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha atualizada')));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Senha atualizada')));
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao atualizar senha: $e')));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao atualizar senha: $e')));
+                        }
                       }
                     }
                   } else if (value == 'deletar_usuario') {
@@ -125,20 +130,27 @@ class MainPage extends ConsumerWidget {
                       try {
                         await client.from('usuario').update({'ativo': false}).eq('id', usuario.id!).select();
                         currentUser.value = null;
-                        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conta desativada')));
-                        Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Conta desativada')));
+                          Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
+                        }
                       } catch (e) {
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao desativar conta: $e')));
+                        if (context.mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Erro ao desativar conta: $e')));
+                        }
                       }
                     }
                   } else if (value == 'logout') {
                     try {
                       await Supabase.instance.client.auth.signOut();
                     } catch (e) {
+                      // Ignorando erro de signOut, limpando localmente
                     }
                     currentUser.value = null;
                     ref.read(currentUserIdProvider.notifier).state = null;
-                    Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
+                    if (context.mounted) {
+                      Navigator.of(context).pushAndRemoveUntil(MaterialPageRoute(builder: (_) => const LoginPage()), (route) => false);
+                    }
                   }
                 },
                 itemBuilder: (context) => const [

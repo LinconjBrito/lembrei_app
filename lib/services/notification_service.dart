@@ -1,3 +1,4 @@
+import 'package:myapp/utils/logger.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/data/latest.dart' as tzdata;
 import 'package:timezone/timezone.dart' as tz;
@@ -28,7 +29,7 @@ class NotificationService {
     await _plugin.initialize(
       settings,
       onDidReceiveNotificationResponse: (NotificationResponse response) async {
-        print('Notificação recebida/clicada: ${response.payload}');
+        Logger.log('Notificação recebida/clicada: ${response.payload}');
         if (response.payload != null) {
           await _markActivityAsCompleted(response.payload!);
         }
@@ -50,7 +51,7 @@ class NotificationService {
     
     await Permission.notification.request();
     
-    print('NotificationService inicializado com sucesso');
+    Logger.log('NotificationService inicializado com sucesso');
   }
   
   Future<bool> checkAndRequestExactAlarmPermission() async {
@@ -63,20 +64,20 @@ class NotificationService {
   }
 
   Future<void> scheduleActivityNotification(Atividade a) async {
-    print('Tentando agendar notificação para atividade: ${a.nome}');
+    Logger.log('Tentando agendar notificação para atividade: ${a.nome}');
     
     if (a.id == null) return;
     if (a.horario == null || a.horario!.isEmpty) return;
     final notificationStatus = await Permission.notification.request();
-    print('Status permissão notificação: $notificationStatus');
+    Logger.log('Status permissão notificação: $notificationStatus');
     if (!notificationStatus.isGranted) {
-      print('Permissão de notificação não concedida');
+      Logger.log('Permissão de notificação não concedida');
       return;
     }
     final hasPermission = await checkAndRequestExactAlarmPermission();
-    print('Status permissão alarme exato: $hasPermission');
+    Logger.log('Status permissão alarme exato: $hasPermission');
     if (!hasPermission) {
-      print('Permissão de alarme exato não concedida');
+      Logger.log('Permissão de alarme exato não concedida');
       return;
     }
 
@@ -89,18 +90,18 @@ class NotificationService {
     
     var scheduled = tz.TZDateTime(tz.local, now.year, now.month, now.day, hour, minute);
     
-    print('Horário da atividade: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
-    print('Horário atual: ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}');
+    Logger.log('Horário da atividade: ${hour.toString().padLeft(2, '0')}:${minute.toString().padLeft(2, '0')}');
+    Logger.log('Horário atual: ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}');
 
     if (scheduled.isBefore(now)) {
       scheduled = scheduled.add(const Duration(days: 1));
-      print('Horário já passou hoje, agendando para amanhã');
+      Logger.log('Horário já passou hoje, agendando para amanhã');
     } else {
-      print('Agendando para hoje');
+      Logger.log('Agendando para hoje');
     }
 
-    print('Notificação programada para: $scheduled');
-    print('Recorrente: ${a.recorrente}');
+    Logger.log('Notificação programada para: $scheduled');
+    Logger.log('Recorrente: ${a.recorrente}');
 
     final androidDetails = AndroidNotificationDetails(
       'atividades_channel',
@@ -131,7 +132,7 @@ class NotificationService {
       payload: a.id!.toString(),
     );
     
-    print('Notificação agendada com ID ${a.id} para $scheduled');
+    Logger.log('Notificação agendada com ID ${a.id} para $scheduled');
   }
 
   Future<void> cancelNotificationForActivityId(int id) async {
@@ -157,11 +158,11 @@ class NotificationService {
       'Se você está vendo isso, as notificações estão funcionando!',
       details,
     );
-    print('Notificação de teste disparada!');
+    Logger.log('Notificação de teste disparada!');
   }
   Future<void> rescheduleAllNotificationsForUser(int userId) async {
     try {
-      print('Reagendando notificações para usuário $userId');
+      Logger.log('Reagendando notificações para usuário $userId');
       
       final client = Supabase.instance.client;
       final results = await client
@@ -173,28 +174,26 @@ class NotificationService {
 
       int count = 0;
       for (final r in results) {
-        if (r is Map<String, dynamic>) {
-          try {
-            final atividade = Atividade.fromMap(r);
-            if (atividade.horario != null && atividade.id != null) {
-              await scheduleActivityNotification(atividade);
-              count++;
-            }
-          } catch (e) {
-            print('Erro ao reagendar atividade ${r['id']}: $e');
+        try {
+          final atividade = Atividade.fromMap(r);
+          if (atividade.horario != null && atividade.id != null) {
+            await scheduleActivityNotification(atividade);
+            count++;
           }
+        } catch (e) {
+          Logger.log('Erro ao reagendar atividade ${r['id']}: $e');
         }
       }
       
-      print('$count notificações reagendadas com sucesso');
+      Logger.log('$count notificações reagendadas com sucesso');
     } catch (e) {
-      print('Erro ao reagendar notificações: $e');
+      Logger.log('Erro ao reagendar notificações: $e');
     }
   }
 
   Future<void> cancelAllNotifications() async {
     await _plugin.cancelAll();
-    print('Todas as notificações foram canceladas');
+    Logger.log('Todas as notificações foram canceladas');
   }
 
   Future<void> _markActivityAsCompleted(String activityIdStr) async {
@@ -202,7 +201,7 @@ class NotificationService {
       final activityId = int.tryParse(activityIdStr);
       if (activityId == null) return;
 
-      print('Marcando atividade $activityId como concluída');
+      Logger.log('Marcando atividade $activityId como concluída');
       
       final result = await Supabase.instance.client
           .from('atividades')
@@ -220,13 +219,13 @@ class NotificationService {
               .eq('id', activityId);
           
           await cancelNotificationForActivityId(activityId);
-          print('Atividade $activityId marcada como concluída');
+          Logger.log('Atividade $activityId marcada como concluída');
         } else {
-          print('Atividade recorrente $activityId não será marcada como concluída');
+          Logger.log('Atividade recorrente $activityId não será marcada como concluída');
         }
       }
     } catch (e) {
-      print('Erro ao marcar atividade como concluída: $e');
+      Logger.log('Erro ao marcar atividade como concluída: $e');
     }
   }
 
@@ -236,7 +235,7 @@ class NotificationService {
 
   Future<void> resetRecurrentActivities(int userId) async {
     try {
-      print('Verificando atividades recorrentes para reset...');
+      Logger.log('Verificando atividades recorrentes para reset...');
       
       final now = DateTime.now();
       final today = DateTime(now.year, now.month, now.day);
@@ -272,15 +271,15 @@ class NotificationService {
             resetCount++;
           }
         } catch (e) {
-          print('Erro ao processar atividade ${r['id']}: $e');
+          Logger.log('Erro ao processar atividade ${r['id']}: $e');
         }
       }
       
       if (resetCount > 0) {
-        print('$resetCount atividades recorrentes resetadas');
+        Logger.log('$resetCount atividades recorrentes resetadas');
       }
     } catch (e) {
-      print('Erro ao resetar atividades recorrentes: $e');
+      Logger.log('Erro ao resetar atividades recorrentes: $e');
     }
   }
 }
