@@ -53,9 +53,18 @@ dev_dependencies:
   riverpod_lint: ^3.0.3
   freezed: ^3.2.3
   json_serializable: ^6.11.2
+  flutter_launcher_icons: ^0.14.4
 
 # For information on the generic Dart part of this file, see the
 # following page: https://dart.dev/tools/pub/pubspec
+
+# Configuração do ícone do app
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/icon.png"
+  adaptive_icon_background: "#6496FF"
+  adaptive_icon_foreground: "assets/icon.png"
 
 # The following section is specific to Flutter packages.
 flutter:

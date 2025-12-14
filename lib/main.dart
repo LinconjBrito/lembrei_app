@@ -18,8 +18,35 @@ void main() async {
 
   await Function.apply(Supabase.initialize, [], supabaseOptions);
   await NotificationService().init();
+  _rescheduleNotificationsOnStartup();
 
   runApp(const MyApp());
+}
+Future<void> _rescheduleNotificationsOnStartup() async {
+  try {
+
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    final session = Supabase.instance.client.auth.currentSession;
+    if (session != null) {
+      final userId = session.user.id;
+      final userResult = await Supabase.instance.client
+          .from('usuario')
+          .select('id')
+          .eq('id_auth', userId)
+          .maybeSingle();
+      
+      if (userResult != null && userResult['id'] != null) {
+        final userIdInt = userResult['id'] as int;
+        await NotificationService().resetRecurrentActivities(userIdInt);
+        await NotificationService().rescheduleAllNotificationsForUser(userIdInt);
+        print('Atividades recorrentes resetadas e notificações reagendadas no startup');
+      }
+    }
+  } catch (e) {
+    print('Erro ao reagendar notificações no startup: $e');
+
+  }
 }
 
 class MyApp extends StatelessWidget {
