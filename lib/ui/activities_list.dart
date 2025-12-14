@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'models/atividade.dart';
-import 'providers/current_user_provider.dart';
-import 'notification_service.dart';
+import '../models/atividade.dart';
+import '../providers/current_user_provider.dart';
+import '../services/notification_service.dart';
 
 class ActivitiesList extends ConsumerStatefulWidget {
   const ActivitiesList({super.key});

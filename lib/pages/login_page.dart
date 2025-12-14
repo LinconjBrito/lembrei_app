@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'models/usuario.dart';
-import 'current_user.dart';
-import 'providers/current_user_provider.dart';
+import '../models/usuario.dart';
+import '../current_user.dart';
+import '../providers/current_user_provider.dart';
 
 class LoginPage extends ConsumerStatefulWidget {
   const LoginPage({super.key});

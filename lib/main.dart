@@ -1,14 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'supabase_options.dart';
+import 'config/supabase_options.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:myapp/auth_provider.dart';
-import 'package:myapp/notification_service.dart';
-import 'package:myapp/login_page.dart';
+import 'package:myapp/providers/auth_provider.dart';
+import 'package:myapp/services/notification_service.dart';
+import 'package:myapp/pages/login_page.dart';
 import 'package:myapp/current_user.dart';
 import 'package:myapp/models/usuario.dart';
 import 'package:myapp/providers/current_user_provider.dart';
-import 'package:myapp/activities_list.dart';
+import 'package:myapp/ui/activities_list.dart';
 
 
 
