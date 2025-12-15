@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/atividade.dart';
 import '../providers/current_user_provider.dart';
 import '../services/notification_service.dart';
+import '../utils/logger.dart';
 
 class ActivitiesList extends ConsumerStatefulWidget {
   const ActivitiesList({super.key});
@@ -41,10 +42,8 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
         list.add(Atividade.fromMap(r));
       }
       
-      // Resetar atividades recorrentes que foram concluídas em dias anteriores
       await NotificationService().resetRecurrentActivities(userId);
       
-      // Recarregar dados após reset
       final updatedResults = await client
           .from('atividades')
           .select()
@@ -56,7 +55,6 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
         list.add(Atividade.fromMap(r));
       }
       
-      // Separar em pendentes e concluídas
       final pendentes = list.where((a) => !a.concluida).toList();
       final concluidas = list.where((a) => a.concluida).toList();
       
@@ -66,10 +64,9 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
         _concluidas = concluidas;
       });
       
-      // Reagendar apenas notificações de atividades pendentes
       await NotificationService().rescheduleAllNotificationsForUser(userId);
     } catch (e) {
-      // Erro ao carregar atividades será exibido como lista vazia
+      Logger.error('Erro ao carregar atividades', e);
     } finally {
       setState(() => _loading = false);
     }
@@ -88,37 +85,42 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
       builder: (context) => StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
           title: const Text('Adicionar atividade'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome')),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                  child: Text(chosenTime != null ? 'Horário: ${chosenTime!.format(context)}' : 'Sem horário'),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
-                    if (t != null) setState(() => chosenTime = t);
-                  },
-                  child: const Text('Escolher horário'),
-                )
-              ]),
-              if (chosenTime != null) ...[
+          content: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                TextField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome')),
                 const SizedBox(height: 8),
-                CheckboxListTile(
-                  title: const Text('Atividade recorrente (diária)'),
-                  subtitle: const Text('Notificação todos os dias neste horário'),
-                  value: isRecorrente,
-                  onChanged: (value) {
-                    setState(() => isRecorrente = value ?? false);
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                ),
+                Row(children: [
+                  Expanded(
+                    child: Text(chosenTime != null ? 'Horário: ${chosenTime!.format(context)}' : 'Sem horário'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                      if (t != null) setState(() => chosenTime = t);
+                    },
+                    child: const Text('Escolher horário'),
+                  )
+                ]),
+                if (chosenTime != null) ...[
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    title: const Text('Atividade recorrente (diária)'),
+                    subtitle: const Text('Notificação todos os dias neste horário'),
+                    value: isRecorrente,
+                    onChanged: (value) {
+                      setState(() => isRecorrente = value ?? false);
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ],
               ],
-            ],
+              ),
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),
@@ -179,7 +181,6 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
       child: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
-          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Row(
@@ -189,51 +190,60 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
               ],
             ),
             const SizedBox(height: 8),
-            if (_loading) const Center(child: CircularProgressIndicator()),
-            if (!_loading && _items.isEmpty)
-              const Padding(
-                padding: EdgeInsets.symmetric(vertical: 12.0),
-                child: Text('Nenhuma atividade encontrada', textAlign: TextAlign.center),
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    if (_loading) const Center(child: CircularProgressIndicator()),
+                    if (!_loading && _items.isEmpty)
+                      const Padding(
+                        padding: EdgeInsets.symmetric(vertical: 12.0),
+                        child: Text('Nenhuma atividade encontrada', textAlign: TextAlign.center),
+                      ),
+                    if (!_loading && _items.isNotEmpty) ...[
+                      if (_pendentes.isNotEmpty) ...[
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'Atividades Pendentes',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                          ),
+                        ),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _pendentes.length,
+                          itemBuilder: (context, index) {
+                            final a = _pendentes[index];
+                            return _buildActivityTile(a, isPendente: true);
+                          },
+                        ),
+                      ],
+                      if (_concluidas.isNotEmpty) ...[
+                        const Divider(height: 24),
+                        const Padding(
+                          padding: EdgeInsets.symmetric(vertical: 8.0),
+                          child: Text(
+                            'Atividades Concluídas',
+                            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
+                          ),
+                        ),
+                        ListView.builder(
+                          shrinkWrap: true,
+                          physics: const NeverScrollableScrollPhysics(),
+                          itemCount: _concluidas.length,
+                          itemBuilder: (context, index) {
+                            final a = _concluidas[index];
+                            return _buildActivityTile(a, isPendente: false);
+                          },
+                        ),
+                      ],
+                    ],
+                  ],
+                ),
               ),
-            if (!_loading && _items.isNotEmpty) ...[
-              if (_pendentes.isNotEmpty) ...[
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    'Atividades Pendentes',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _pendentes.length,
-                  itemBuilder: (context, index) {
-                    final a = _pendentes[index];
-                    return _buildActivityTile(a, isPendente: true);
-                  },
-                ),
-              ],
-              if (_concluidas.isNotEmpty) ...[
-                const Divider(height: 24),
-                const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 8.0),
-                  child: Text(
-                    'Atividades Concluídas',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey),
-                  ),
-                ),
-                ListView.builder(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: _concluidas.length,
-                  itemBuilder: (context, index) {
-                    final a = _concluidas[index];
-                    return _buildActivityTile(a, isPendente: false);
-                  },
-                ),
-              ],
-            ],
+            ),
           ],
         ),
       ),
@@ -332,37 +342,42 @@ class _ActivitiesListState extends ConsumerState<ActivitiesList> {
       builder: (context) => StatefulBuilder(builder: (context, setState) {
         return AlertDialog(
           title: const Text('Editar atividade'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome')),
-              const SizedBox(height: 8),
-              Row(children: [
-                Expanded(
-                  child: Text(chosenTime != null ? 'Horário: ${chosenTime?.format(context)}' : 'Sem horário'),
-                ),
-                TextButton(
-                  onPressed: () async {
-                    final t = await showTimePicker(context: context, initialTime: chosenTime ?? TimeOfDay.now());
-                    if (t != null) setState(() => chosenTime = t);
-                  },
-                  child: const Text('Escolher horário'),
-                )
-              ]),
-              if (chosenTime != null) ...[
+          content: SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(vertical: 8.0),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                TextField(controller: nomeController, decoration: const InputDecoration(labelText: 'Nome')),
                 const SizedBox(height: 8),
-                CheckboxListTile(
-                  title: const Text('Atividade recorrente (diária)'),
-                  subtitle: const Text('Notificação todos os dias neste horário'),
-                  value: isRecorrente,
-                  onChanged: (value) {
-                    setState(() => isRecorrente = value ?? false);
-                  },
-                  contentPadding: EdgeInsets.zero,
-                  dense: true,
-                ),
+                Row(children: [
+                  Expanded(
+                    child: Text(chosenTime != null ? 'Horário: ${chosenTime?.format(context)}' : 'Sem horário'),
+                  ),
+                  TextButton(
+                    onPressed: () async {
+                      final t = await showTimePicker(context: context, initialTime: chosenTime ?? TimeOfDay.now());
+                      if (t != null) setState(() => chosenTime = t);
+                    },
+                    child: const Text('Escolher horário'),
+                  )
+                ]),
+                if (chosenTime != null) ...[
+                  const SizedBox(height: 8),
+                  CheckboxListTile(
+                    title: const Text('Atividade recorrente (diária)'),
+                    subtitle: const Text('Notificação todos os dias neste horário'),
+                    value: isRecorrente,
+                    onChanged: (value) {
+                      setState(() => isRecorrente = value ?? false);
+                    },
+                    contentPadding: EdgeInsets.zero,
+                    dense: true,
+                  ),
+                ],
               ],
-            ],
+              ),
+            ),
           ),
           actions: [
             TextButton(onPressed: () => Navigator.of(context).pop(false), child: const Text('Cancelar')),

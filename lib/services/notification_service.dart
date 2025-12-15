@@ -23,7 +23,7 @@ class NotificationService {
     }
     tz.setLocalLocation(localZone);
 
-    const android = AndroidInitializationSettings('@mipmap/ic_launcher');
+    const android = AndroidInitializationSettings('@drawable/ic_notification');
     const ios = DarwinInitializationSettings();
     const settings = InitializationSettings(android: android, iOS: ios);
     await _plugin.initialize(
@@ -111,7 +111,7 @@ class NotificationService {
       priority: Priority.high,
       playSound: true,
       enableVibration: true,
-      icon: '@mipmap/ic_launcher',
+      icon: '@drawable/ic_notification',
       ongoing: false,
       autoCancel: true,
     );

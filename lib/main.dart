@@ -144,7 +144,7 @@ class MainPage extends ConsumerWidget {
                     try {
                       await Supabase.instance.client.auth.signOut();
                     } catch (e) {
-                      // Ignorando erro de signOut, limpando localmente
+                      Logger.error('Erro ao fazer signOut', e);
                     }
                     currentUser.value = null;
                     ref.read(currentUserIdProvider.notifier).state = null;
@@ -163,23 +163,21 @@ class MainPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Bem-vindo às suas atividades!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
-            const SizedBox(height: 8),
-            Builder(builder: (context) {
-              final userId = ref.watch(currentUserIdProvider);
-              return Text(
-                userId != null ? 'ID do usuário: $userId' : 'Usuário não identificado',
-                style: const TextStyle(color: Colors.black54),
-              );
-            }),
-            const SizedBox(height: 12),
-            const ActivitiesList(),
-          ],
-        ),
+      body: Column(
+        children: [
+          const SizedBox(height: 16),
+          const Text('Bem-vindo às suas atividades!', style: TextStyle(fontSize: 18, fontWeight: FontWeight.w500)),
+          const SizedBox(height: 8),
+          Builder(builder: (context) {
+            final userId = ref.watch(currentUserIdProvider);
+            return Text(
+              userId != null ? 'ID do usuário: $userId' : 'Usuário não identificado',
+              style: const TextStyle(color: Colors.black54),
+            );
+          }),
+          const SizedBox(height: 12),
+          const Expanded(child: ActivitiesList()),
+        ],
       ),
     );
   }
