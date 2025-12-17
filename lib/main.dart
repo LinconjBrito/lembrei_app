@@ -57,6 +57,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return ProviderScope(
       child: MaterialApp(
+        debugShowCheckedModeBanner: false,
         home: authenticationEnabled ? AuthenticationWrapper() : const MainPage(),
         routes: {
           '/home': (context) => const MainPage(),
